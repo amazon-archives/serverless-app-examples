@@ -1,11 +1,6 @@
-## My Project
+## AWS Serverless Application Repository Examples
 
-TODO: Fill this README out!
-
-Be sure to:
-
-* Change the title in this README
-* Edit your repository description on GitHub
+This project provides source code of example applications for people to get started using AWS Serverless Application Repository. 
 
 ## License
 

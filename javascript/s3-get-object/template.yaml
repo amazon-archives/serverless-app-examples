@@ -12,7 +12,7 @@ Resources:
     Type: 'AWS::Serverless::Function'
     Properties:
       Handler: index.handler
-      Runtime: nodejs8.10
+      Runtime: nodejs12.x
       CodeUri: .
       Description: >-
         An Amazon S3 trigger that retrieves metadata for the object that has

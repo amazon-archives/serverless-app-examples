@@ -10,7 +10,7 @@ Resources:
     Type: 'AWS::Serverless::Function'
     Properties:
       Handler: index.handler
-      Runtime: nodejs8.10
+      Runtime: nodejs12.x
       CodeUri: .
       Description: >-
         Blueprint for setting CloudFront response header based on value in the request header implemented in NodeJS.

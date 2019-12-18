@@ -7,7 +7,7 @@ Resources:
     Properties:
       CodeUri: '.'
       Handler: 'routes/root.handler'
-      Runtime: 'nodejs8.10'
+      Runtime: 'nodejs12.x'
       Events:
         Get:
           Type: 'Api'
@@ -19,7 +19,7 @@ Resources:
     Properties:
       CodeUri: '.'
       Handler: 'routes/test.handler'
-      Runtime: 'nodejs8.10'
+      Runtime: 'nodejs12.x'
       Events:
         Delete:
           Type: 'Api'

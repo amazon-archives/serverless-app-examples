@@ -14,7 +14,7 @@ Resources:
     Type: 'AWS::Serverless::Function'
     Properties:
       Handler: index.handler
-      Runtime: nodejs6.10
+      Runtime: nodejs12.x
       CodeUri: .
       Description: >-
         Demonstrates logging from AWS Lambda code to Splunk's HTTP event

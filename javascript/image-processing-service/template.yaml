@@ -10,7 +10,7 @@ Resources:
     Type: 'AWS::Serverless::Function'
     Properties:
       Handler: index.handler
-      Runtime: nodejs8.10
+      Runtime: nodejs12.x
       CodeUri: .
       Description: >-
         Uses ImageMagick to perform simple image processing operations, such as resizing.
