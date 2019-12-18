@@ -9,7 +9,7 @@ Resources:
     Type: 'AWS::Serverless::Function'
     Properties:
       Handler: index.handler
-      Runtime: nodejs8.10
+      Runtime: nodejs12.x
       CodeUri: .
       Description: 'Blueprint for API Gateway custom authorizers, implemented in NodeJS.'
       MemorySize: 256
