@@ -13,4 +13,3 @@ Resources:
       Timeout: 10
       Policies:
         - CloudWatchPutMetricPolicy: {}
-        - EC2VPNDescribePolicy: {}

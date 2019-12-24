@@ -15,7 +15,6 @@ Resources:
       Timeout: 15
       Policies:
         - CloudWatchPutMetricPolicy: {}
-        - EC2VPNDescribePolicy: {}
       Events:
         Api1:
           Type: Api
