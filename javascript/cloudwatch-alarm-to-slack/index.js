@@ -116,7 +116,15 @@ exports.handler = (event, context, callback) => {
         // Container reuse, simply process the event with the key in memory
         processEvent(event, callback);
     } else if (kmsEncryptedHookUrl && kmsEncryptedHookUrl !== '<kmsEncryptedHookUrl>') {
-        const encryptedBuf = new Buffer(kmsEncryptedHookUrl, 'base64');
+        let encryptedBuf;
+        if (Buffer.from && Buffer.from !== Uint8Array.from) {
+          encryptedBuf = Buffer.from(kmsEncryptedHookUrl, 'base64'); // Node.js >= 8
+        } else {
+          if (typeof kmsEncryptedHookUrl === 'number') {
+            throw new Error('The "kmsEncryptedHookUrl" argument must be not of type number.');
+          }
+          encryptedBuf = new Buffer(kmsEncryptedHookUrl, 'base64'); // Node.js < 8
+        }
         const cipherText = { CiphertextBlob: encryptedBuf };
 
         const kms = new AWS.KMS();
