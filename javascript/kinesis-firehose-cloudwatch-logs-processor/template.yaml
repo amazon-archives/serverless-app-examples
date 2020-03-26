@@ -19,3 +19,14 @@ Resources:
       Policies:
         - S3CrudPolicy:
             BucketName: !Ref BucketNameParameter
+Outputs:
+  FunctionName:
+    Description: Name of the Lambda function name
+    Value:
+      Ref: kinesisfirehosecloudwatchlogsprocessor
+  FunctionArn:
+    Description: ARN of the Lambda function name
+    Value:
+      Fn::GetAtt:
+      - kinesisfirehosecloudwatchlogsprocessor
+      - Arn
