@@ -1,0 +1,536 @@
+# AWS Samples / Serverless Application Examples / Go WebSockets
+#
+# Go source code, Infrastructure as Code templates, build scripts, and configuration
+# files for deploying a minimal example demonstrating how to use WebSockets with Amazon
+# API Gateway, AWS Lambda, Amazon ElastiCache for Redis, and Amazon VPC.
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+
+Parameters:
+  ApplicationName:
+    Type: String
+    Default: Go WebSockets Example
+    Description: The application name used when tagging resources
+
+  VpcCIDR:
+    Type: String
+    Default: 10.1.0.0/16
+    Description: The IP range (CIDR notation) for this VPC
+
+  PrivateSubnet1CIDR:
+    Type: String
+    Default: 10.1.1.0/24
+    Description: The IP range (CIDR notation) for the private subnet in the first AZ
+
+  PrivateSubnet2CIDR:
+    Type: String
+    Default: 10.1.2.0/24
+    Description: The IP range (CIDR notation) for the private subnet in the second AZ
+
+  PublicSubnet1CIDR:
+    Type: String
+    Default: 10.1.3.0/24
+    Description: The IP range (CIDR notation) for the public subnet in the first AZ
+
+  PublicSubnet2CIDR:
+    Type: String
+    Default: 10.1.4.0/24
+    Description: The IP range (CIDR notation) for the public subnet in the second AZ
+
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCIDR
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: !Ref ApplicationName
+
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PrivateSubnet1CIDR
+      AvailabilityZone: !Select
+         - 0
+         - Fn::GetAZs: !Ref 'AWS::Region'
+      Tags:
+        - Key: Name
+          Value: !Sub ${ApplicationName} Private Subnet (AZ1)
+
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PrivateSubnet2CIDR
+      AvailabilityZone: !Select
+        - 1
+        - Fn::GetAZs: !Ref 'AWS::Region'
+      Tags:
+        - Key: Name
+          Value: !Sub ${ApplicationName} Private Subnet (AZ2)
+
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PublicSubnet1CIDR
+      AvailabilityZone: !Select
+        - 0
+        - Fn::GetAZs: !Ref 'AWS::Region'
+      Tags:
+        - Key: Name
+          Value: !Sub ${ApplicationName} Public Subnet (AZ1)
+
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PublicSubnet2CIDR
+      AvailabilityZone: !Select
+        - 2
+        - Fn::GetAZs: !Ref 'AWS::Region'
+      Tags:
+        - Key: Name
+          Value: !Sub ${ApplicationName} Public Subnet (AZ2)
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub ${ApplicationName} Internet Gateway
+
+  InternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  NatGateway1EIP:
+    Type: AWS::EC2::EIP
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: !Sub ${ApplicationName} (1)
+
+  NatGateway2EIP:
+    Type: AWS::EC2::EIP
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: !Sub ${ApplicationName} (2)
+
+  NatGateway1:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      SubnetId: !Ref PublicSubnet1
+      AllocationId: !GetAtt NatGateway1EIP.AllocationId
+      Tags:
+        - Key: Name
+          Value: !Sub ${ApplicationName} (1)
+
+  NatGateway2:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      SubnetId: !Ref PublicSubnet2
+      AllocationId: !GetAtt NatGateway2EIP.AllocationId
+      Tags:
+        - Key: Name
+          Value: !Sub ${ApplicationName} (2)
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${ApplicationName} Public Routes
+
+  DefaultPublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      GatewayId: !Ref InternetGateway
+      DestinationCidrBlock: 0.0.0.0/0
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet1
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet2
+      RouteTableId: !Ref PublicRouteTable
+
+  PrivateRouteTable1:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${ApplicationName} Private Routes (AZ1)
+
+  DefaultPrivateRoute1:
+    Type: AWS::EC2::Route
+    Properties:
+      NatGatewayId: !Ref NatGateway1
+      DestinationCidrBlock: 0.0.0.0/0
+      RouteTableId: !Ref PrivateRouteTable1
+
+  PrivateSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet1
+      RouteTableId: !Ref PrivateRouteTable1
+
+  PrivateRouteTable2:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${ApplicationName} Private Routes (AZ2)
+
+  DefaultPrivateRoute2:
+    Type: AWS::EC2::Route
+    Properties:
+      NatGatewayId: !Ref NatGateway2
+      DestinationCidrBlock: 0.0.0.0/0
+      RouteTableId: !Ref PrivateRouteTable2
+
+  PrivateSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet2
+      RouteTableId: !Ref PrivateRouteTable2
+
+  NoIngressSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VPC
+      GroupDescription: !Sub ${ApplicationName} Security Group (No Ingress)
+      Tags:
+        - Key: Name
+          Value: !Sub ${ApplicationName} Security Group (No Ingress)
+
+  RedisSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VPC
+      GroupDescription: !Sub ${ApplicationName} Security Group (Redis)
+      SecurityGroupIngress:
+        - ToPort: 6379
+          FromPort: 6379
+          IpProtocol: tcp
+          SourceSecurityGroupId: !Ref NoIngressSecurityGroup
+          Description: Redis cluster connections from security group
+      Tags:
+        - Key: Name
+          Value: !Sub ${ApplicationName} Security Group (Redis)
+
+  RedisSubnetGroup:
+    Type: AWS::ElastiCache::SubnetGroup
+    Properties:
+      Description: Redis cluster subnet group
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+
+  RedisReplicationGroup:
+    Type: AWS::ElastiCache::ReplicationGroup
+    Properties:
+      Port: 6379
+      Engine: redis
+      NumCacheClusters: 2
+      EngineVersion: 5.0.0
+      CacheNodeType: cache.t2.medium
+      AutomaticFailoverEnabled: true
+      AtRestEncryptionEnabled: false
+      TransitEncryptionEnabled: false
+      CacheSubnetGroupName: !Ref RedisSubnetGroup
+      PreferredMaintenanceWindow: sun:23:00-mon:01:30
+      ReplicationGroupDescription: ElastiCache For Redis Replication Group
+      SecurityGroupIds:
+        - !Ref RedisSecurityGroup
+      PreferredCacheClusterAZs:
+        - !Select
+          - 0
+          - Fn::GetAZs: !Ref 'AWS::Region'
+        - !Select
+          - 1
+          - Fn::GetAZs: !Ref 'AWS::Region'
+      Tags:
+        - Key: Name
+          Value: !Sub ${ApplicationName} ElastiCache for Redis
+
+  ConnectFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Timeout: 15
+      Runtime: go1.x
+      Tracing: Active
+      MemorySize: 512
+      CodeUri: connect/
+      Handler: bin/handler
+      Environment:
+        Variables:
+          REDIS_PORT: !GetAtt RedisReplicationGroup.PrimaryEndPoint.Port
+          REDIS_HOST: !GetAtt RedisReplicationGroup.PrimaryEndPoint.Address
+      VpcConfig:
+        SubnetIds:
+          - !Ref PrivateSubnet1
+          - !Ref PrivateSubnet2
+        SecurityGroupIds:
+          - !Ref NoIngressSecurityGroup
+      Policies:
+        - VPCAccessPolicy: {}
+
+  DisconnectFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Timeout: 15
+      Runtime: go1.x
+      Tracing: Active
+      MemorySize: 512
+      CodeUri: disconnect/
+      Handler: bin/handler
+      Environment:
+        Variables:
+          REDIS_PORT: !GetAtt RedisReplicationGroup.PrimaryEndPoint.Port
+          REDIS_HOST: !GetAtt RedisReplicationGroup.PrimaryEndPoint.Address
+      VpcConfig:
+        SubnetIds:
+          - !Ref PrivateSubnet1
+          - !Ref PrivateSubnet2
+        SecurityGroupIds:
+          - !Ref NoIngressSecurityGroup
+      Policies:
+        - VPCAccessPolicy: {}
+
+  PublishFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Timeout: 30
+      Runtime: go1.x
+      Tracing: Active
+      MemorySize: 1024
+      Handler: bin/handler
+      CodeUri: publish/
+      Environment:
+        Variables:
+          REDIS_PORT: !GetAtt RedisReplicationGroup.PrimaryEndPoint.Port
+          REDIS_HOST: !GetAtt RedisReplicationGroup.PrimaryEndPoint.Address
+      VpcConfig:
+        SubnetIds:
+          - !Ref PrivateSubnet1
+          - !Ref PrivateSubnet2
+        SecurityGroupIds:
+          - !Ref NoIngressSecurityGroup
+      Policies:
+        - VPCAccessPolicy: {}
+        - Statement:
+            - Effect: Allow
+              Action:
+                - "execute-api:ManageConnections"
+              Resource:
+                - !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebSocket}/*"
+
+  WebSocket:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: !Ref ApplicationName
+      ProtocolType: WEBSOCKET
+      RouteSelectionExpression: "$request.body.message"
+
+  Deployment:
+    Type: AWS::ApiGatewayV2::Deployment
+    DependsOn:
+      - PublishRoute
+      - ConnectRoute
+      - DisconnectRoute
+    Properties:
+      ApiId: !Ref WebSocket
+
+  Stage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      StageName: v1
+      ApiId: !Ref WebSocket
+      Description: TO DO
+      DeploymentId: !Ref Deployment
+      DefaultRouteSettings:
+        LoggingLevel: INFO
+        DataTraceEnabled: true
+        DetailedMetricsEnabled: true
+
+  ConnectFunctionPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      - WebSocket
+    Properties:
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      FunctionName: !Ref ConnectFunction
+
+  DisconnectFunctionPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      - WebSocket
+    Properties:
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      FunctionName: !Ref DisconnectFunction
+
+  PublishFunctionPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      - WebSocket
+    Properties:
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      FunctionName: !Ref PublishFunction
+
+  ConnectFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    DependsOn:
+      - ConnectFunction
+    Properties:
+      RetentionInDays: 30
+      LogGroupName: !Sub /aws/lambda/${ConnectFunction}
+
+  DisconnectFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    DependsOn:
+      - DisconnectFunction
+    Properties:
+      RetentionInDays: 30
+      LogGroupName: !Sub /aws/lambda/${DisconnectFunction}
+
+  PublishFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    DependsOn:
+      - PublishFunction
+    Properties:
+      RetentionInDays: 30
+      LogGroupName: !Sub /aws/lambda/${PublishFunction}
+
+  ConnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      RouteKey: $connect
+      ApiId: !Ref WebSocket
+      AuthorizationType: NONE
+      OperationName: ConnectRoute
+      Target: !Join
+        - "/"
+        - - "integrations"
+          - !Ref ConnectIntegration
+
+  DisconnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      RouteKey: $disconnect
+      ApiId: !Ref WebSocket
+      AuthorizationType: NONE
+      OperationName: DisconnectRoute
+      Target: !Join
+        - "/"
+        - - "integrations"
+          - !Ref DisconnectIntegration
+
+  PublishRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      RouteKey: $default
+      ApiId: !Ref WebSocket
+      AuthorizationType: NONE
+      OperationName: PublishRoute
+      Target: !Join
+        - "/"
+        - - "integrations"
+          - !Ref PublishIntegration
+
+  ConnectIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref WebSocket
+      Description: TO DO
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ConnectFunction.Arn}/invocations
+
+  DisconnectIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref WebSocket
+      Description: TO DO
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${DisconnectFunction.Arn}/invocations
+
+  PublishIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref WebSocket
+      Description: TO DO
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PublishFunction.Arn}/invocations
+
+Outputs:
+  VPC:
+    Value: !Ref VPC
+    Description: The created VPC
+
+  PublicSubnets:
+    Description: A list of the public subnets
+    Value: !Join [",", [!Ref PublicSubnet1, !Ref PublicSubnet2]]
+
+  PrivateSubnets:
+    Description: A list of the private subnets
+    Value: !Join [",", [!Ref PrivateSubnet1, !Ref PrivateSubnet2]]
+
+  PublicSubnet1:
+    Value: !Ref PublicSubnet1
+    Description: A reference to the public subnet in the 1st Availability Zone
+
+  PublicSubnet2:
+    Value: !Ref PublicSubnet2
+    Description: A reference to the public subnet in the 2nd Availability Zone
+
+  PrivateSubnet1:
+    Value: !Ref PrivateSubnet1
+    Description: A reference to the private subnet in the 1st Availability Zone
+
+  PrivateSubnet2:
+    Value: !Ref PrivateSubnet2
+    Description: A reference to the private subnet in the 2nd Availability Zone
+
+  NoIngressSecurityGroup:
+    Value: !Ref NoIngressSecurityGroup
+    Description: Security group with no ingress rule
+
+  RedisSecurityGroup:
+    Value: !Ref RedisSecurityGroup
+    Description: Security group for ElastiCache Redis
+
+  RedisPrimaryEndpointAddress:
+    Value: !GetAtt RedisReplicationGroup.PrimaryEndPoint.Address
+    Description: Primary Endpoint Address for the ElastiCache Redis Cluster
+
+  RedisPrimaryEndpointPort:
+    Value: !GetAtt RedisReplicationGroup.PrimaryEndPoint.Port
+    Description: Primary Endpoint Port for the ElastiCache Redis Cluster
+
+  WebSocketEndpoint:
+    Description: URL for making WebSocket connections to the application's API
+    Value: !Sub "wss://${WebSocket}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/"

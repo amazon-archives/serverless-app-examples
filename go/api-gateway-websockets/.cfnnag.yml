@@ -1,0 +1,12 @@
+# AWS Samples / Serverless Application Examples / Go WebSockets
+#
+# Go source code, Infrastructure as Code templates, build scripts, and configuration
+# files for deploying a minimal example demonstrating how to use WebSockets with Amazon
+# API Gateway, AWS Lambda, Amazon ElastiCache for Redis, and Amazon VPC.
+RulesToSuppress:
+  - id: F25
+    reason: DAR encryption is not needed for connection IDs
+  - id: F33
+    reason: DIT encryption is not needed for connection IDs
+  - id: F1000
+    reason: Explicit egress is not required for this sample

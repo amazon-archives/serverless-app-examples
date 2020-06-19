@@ -1,0 +1,74 @@
+# AWS Samples / Serverless Application Examples / Go WebSockets
+#
+# Go source code, Infrastructure as Code templates, build scripts, and configuration
+# files for deploying a minimal example demonstrating how to use WebSockets with Amazon
+# API Gateway, AWS Lambda, Amazon ElastiCache for Redis, and Amazon VPC.
+run:
+  skip-dirs:
+  skip-files:
+  tests: true
+  deadline: 1m
+  issues-exit-code: 1
+
+output:
+  print-linter-name: true
+  print-issued-lines: true
+  format: colored-line-number
+
+linters-settings:
+  govet:
+    check-shadowing: true
+
+  golint:
+    min-confidence: 0
+
+  funlen:
+    lines: 100
+    statements: 30
+
+  gocyclo:
+    min-complexity: 10
+
+  maligned:
+    suggest-new: true
+
+  dupl:
+    threshold: 100
+
+  goconst:
+    min-len: 2
+    min-occurrences: 2
+
+  misspell:
+    locale: US
+    ignore-words:
+
+  lll:
+    line-length: 120
+
+  goimports:
+    local-prefixes: github.com/golangci/golangci-lint
+
+  gocritic:
+    enabled-tags:
+      - performance
+      - style
+      - experimental
+    disabled-checks:
+      - wrapperFunc
+
+linters:
+  enable-all: true
+  disable:
+    - wsl
+    - gomnd
+    - maligned
+    - prealloc
+    - gochecknoinits
+    - gochecknoglobals
+
+issues:
+  exclude-rules:
+    - text: "weak cryptographic primitive"
+      linters:
+        - gosec

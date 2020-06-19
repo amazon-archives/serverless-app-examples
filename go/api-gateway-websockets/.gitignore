@@ -1,0 +1,32 @@
+# AWS Samples / Serverless Application Examples / Go WebSockets
+#
+# Go source code, Infrastructure as Code templates, build scripts, and configuration
+# files for deploying a minimal example demonstrating how to use WebSockets with Amazon
+# API Gateway, AWS Lambda, Amazon ElastiCache for Redis, and Amazon VPC.
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, build with `go test -c` and test data
+*.test
+**/_test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# SAM generated CloudFormation template
+packaged.yml
+
+# AWS Lambda invoke response
+out.json
+
+# All build directories and log files
+**/bin
+**/*.log
+**/*.DS_Store
+
+# IntelliJ
+/.idea/dictionaries/
