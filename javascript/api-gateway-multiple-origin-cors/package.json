@@ -8,7 +8,7 @@
   },
   "author": "",
   "devDependencies": {
-    "jest": "^23.1.0",
+    "jest": "^26.0.1",
     "lodash": ">=4.17.13",
     "merge": ">=1.2.1"
   },
