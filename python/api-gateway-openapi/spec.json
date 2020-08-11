@@ -1,0 +1,26 @@
+{
+  "openapi" : "3.0.1",
+  "info" : {
+    "title" : "Pets",
+    "version" : "2020-07-31 18:56:01UTC"
+  },
+  "paths" : {
+    "/petstore/pets" : {
+      "get" : {
+        "responses" : {
+          "default" : {
+            "description" : "Default response for GET /petstore/pets"
+          }
+        },
+        "x-amazon-apigateway-integration" : {
+          "payloadFormatVersion" : "1.0",
+          "type" : "http_proxy",
+          "httpMethod" : "GET",
+          "uri" : "http://petstore-demo-endpoint.execute-api.com/petstore/pets",
+          "connectionType" : "INTERNET"
+        }
+      }
+    }
+  },
+  "x-amazon-apigateway-importexport-version" : "1.0"
+}

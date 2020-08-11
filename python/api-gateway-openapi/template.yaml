@@ -1,0 +1,61 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: A bare bones example of deploying an API Gateway API with one Lambda using an OpenAPI 3.0.1 example spec file as in-line yaml.
+Parameters:
+  Name:
+    Type: String
+    Description: The name of the API to create, also used as the stack name.
+  Version:
+    Type: String
+    Description: The version of the API. This value is also used as the API StageName.
+    AllowedPattern: "[a-zA-Z][a-zA-Z0-9]*"
+  IdentityNameParameter: 
+    Type: String
+Resources:
+  Api:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Ref Name
+      StageName: !Ref Version
+      OpenApiVersion: 3.0.1
+      DefinitionBody: 
+        openapi: 3.0.1
+        info:
+          title: Hello World API
+          description: This is a swagger example.
+          contact:
+            email: you@your-company.com
+          license:
+            name: Apache 2.0
+            url: http://www.apache.org/licenses/LICENSE-2.0.html
+          version: 1.0.0
+        paths:
+          /hello/world:
+            get:
+              summary: get hello world
+              description: |
+                Invokes hello world lambda function example.
+              responses:
+                "200":
+                  description: search results matching criteria
+                "400":
+                  description: bad input parameter
+              x-amazon-apigateway-integration:
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${HelloWorldPython3.Arn}/invocations
+                responses:
+                  default:
+                    statusCode: "200"
+                passthroughBehavior: when_no_match
+                httpMethod: POST
+                contentHandling: CONVERT_TO_TEXT
+                type: aws_proxy
+  HelloWorldPython3:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.8
+      CodeUri: .
+      Description: A starter AWS Lambda function.
+      MemorySize: 128
+      Timeout: 3
